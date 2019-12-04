@@ -48,72 +48,187 @@ def start(f, zfDicc, p, tf, columnaP, xlk, xhk):
     flw = flf - fld
     fhw = fhf - fhd
 
-    temperaturaBurbuja(p, zfDicc, tf)
+    print('-> Calcular temp de burbuja')
+    it_count = 0
+    result_t_burbuja = temperaturaBurbuja(p, zfDicc, tf)
+    while not result_t_burbuja['status']:
+        it_count+=1
+        print('Iteracion:', it_count)
+        result_t_burbuja = temperaturaBurbuja(p, zfDicc, result_t_burbuja['Td'])
+
+    print('     Regrese pero no hay nadie:', Td_obtenida)
+    input()
     return
 
-
 def temperaturaBurbuja(p, zfDicc, tf):
-    Bx = 0.0
-    By = 0.0
-    Ax = 0.0
-    Ay = 0.0
-    Ai = 0.0
-    Bi = 0.0
-    ki = 0.0
+    Td_obtenida = 0.0
+    yis_calculadas = list()
+    cicle_counter = 1
+    result = dict()
     for element in zfDicc:
-        print('Working with:', element, '=', zfDicc[element]['value'].get())
         # Fijar P y composición
         xi = float(zfDicc[element]['value'].get())
         # Estimar Td
         td = tf
+        # Obtener valores de BD para el elemento
         db_values = db.getElementValues(zfDicc[element]['db_row'])
-        A = db_values['A']
-        B = db_values['B']
-        C = db_values['C']
+        # Calcular Ki como primera aprox
+        Ki = calculate_Ki(p, td, db_values)
+        # Calcular yi_supuesta
+        yi_supuesta = calculate_yi_supuesta(Ki, xi)
+        # Obtner Kib
+        Kib = calculate_Kib(db_values, zfDicc, td, p, yi_supuesta)
+        while True:
+            # Calcular yi_calculada
+            yi_calculada=Kib*xi
+            #print('yi calculada = Kib·xi')
+            #print('yi calculada = ', Kib,'*',xi, '=', yi_calculada)
+            normalizado = abs(yi_supuesta - yi_calculada)
+            print('abs(yi_supuesta - yi_calculada) => ', yi_supuesta, '-', yi_calculada, '=', normalizado)
+            if(normalizado  < 0.001):
+                #print('<<-- Yi calculada para', element, 'en ciclo', cicle_counter)
+                #input()
+                yis_calculadas.append(yi_calculada)
+                #print('->Yis calculadas totales:', len(yis_calculadas), 'Cantidad de componentes:', len(zfDicc))
+                if len(yis_calculadas) == len(zfDicc):
+                    f = 1 - sum(yis_calculadas)
+                    if f >= -0.01 and f <= 0.01:
+                        print('<------------------------------------------------>')
+                        Td_obtenida = td
+                        result['status'] = True
+                        result['Td'] = Td_obtenida
+                        result['yis_calculadas'] = yis_calculadas
+                        return result
+                    else:
+                        delta_td = 0
+                        if f < 0:
+                            print('delta_td -0.01')
+                            delta_td = -0.01
+                        else:
+                            print('delta_td +0.01')
+                            delta_td = 0.01
+                        td = td + delta_td
+                        print('Td=', td)
+                        result['status'] = False
+                        result['Td'] = td
+                        return result
+                else:
+                    break
+            else:
+                yi_supuesta = yi_calculada
+                Kib = calculate_Kib(db_values, zfDicc, td, p, yi_supuesta)
+                print(Kib)
+                cicle_counter+=1
+                print('Ciclo', cicle_counter, 'falló')
+                if(cicle_counter == 10): sys.exit()
+    print('Proceso recursivo ha fallado.')
+    sys.exit()
+
+def calculate_Ki(p, td, db_values):
+    A = db_values['A']
+    B = db_values['B']
+    C = db_values['C']
+    pi_sat = math.exp(A - (B / (td + C)))
+    Ki = pi_sat / p
+    return Ki
+
+def calculate_yi_supuesta(ki, xi):
+    yi_supuesta = ki * xi
+    #print('yi_supuesta = Ki·xi')
+    #print('yi_supuesta = ', ki,'*',xi, '=', yi_supuesta)
+    return yi_supuesta
+
+def calculate_Kib(db_values, zfDicc, tf, p, yi_supuesta):
+    Tc = db_values['Tc']
+    Pc = db_values['Pc']
+    Ai = calculate_Ai(Pc, tf, Tc)
+    Ay = calculate_Ay(zfDicc, yi_supuesta, tf)
+    Ax = calculate_Ax(zfDicc, tf)
+    Bi = calculate_Bi(Pc, tf, Tc)
+    By = calculate_By(zfDicc, yi_supuesta, tf)
+    Bx = calculate_Bx(zfDicc, tf)
+
+    A = math.sqrt(Ax * Ay)
+    B = math.sqrt(Bx * By)
+
+    Z = getRoots(A, B, p)
+    Zl = Z['Zl']
+    Zv = Z['Zv']
+    FIv = coeficiente_de_fugacidad(Zv, p, A, B, Ai, Bi)
+    FIl = coeficiente_de_fugacidad(Zl, p, A, B, Ai, Bi)
+    print('FIv:', FIv)
+    print('FIl:', FIl)
+    return FIl/FIv
+
+def calculate_Ai(Pc, tf, Tc):
+    return (0.4278/(Pc*((tf/Tc)**2.5)))**(0.5)
+
+def calculate_Bi(Pc, tf, Tc):
+    return 0.0867/(Pc*(tf/Tc))
+
+def calculate_Bx(zfDicc, tf):
+    sumatoria = 0.0
+    for element in zfDicc:
+        db_values = db.getElementValues(zfDicc[element]['db_row'])
         Tc = db_values['Tc']
         Pc = db_values['Pc']
-        # Calcular Ki como primera aprox
-        pi_sat = math.exp(A - (B / (tf + C)))
-        ki = pi_sat / p
-        # Calcular yi_supuesta
-        yi_supuesta = ki * xi
-        print('yi_supuesta = Ki·xi')
-        print('yi_supuesta = ', ki,'*',xi, '=', yi_supuesta)
+        Bi = calculate_Bi(Pc, tf, Tc)
+        sumatoria += Bi * float(zfDicc[element]['value'].get())
+    return sumatoria
 
-        Ai = (0.4278/(Pc*((tf/Tc)**2.5)))**(1/2)
-        Bi = 0.0867/(Pc*(tf/Tc))
+def calculate_Ax(zfDicc, tf):
+    sumatoria = 0.0
+    for element in zfDicc:
+        db_values = db.getElementValues(zfDicc[element]['db_row'])
+        Tc = db_values['Tc']
+        Pc = db_values['Pc']
+        Ai = calculate_Ai(Pc, tf, Tc)
+        sumatoria += Ai * float(zfDicc[element]['value'].get())
+    return sumatoria
 
-        Bx += Bi * xi
-        By += Bi * yi_supuesta
-        Ax += Ai * xi
-        Ay += Ai * yi_supuesta
+def calculate_Ay(zfDicc, yi_supuesta, tf):
+    sumatoria = 0.0
+    for element in zfDicc:
+        db_values = db.getElementValues(zfDicc[element]['db_row'])
+        Tc = db_values['Tc']
+        Pc = db_values['Pc']
+        Ai = calculate_Ai(Pc, tf, Tc)
+        sumatoria += Ai * yi_supuesta
+    return sumatoria
 
+def calculate_By(zfDicc, yi_supuesta, tf):
+    sumatoria = 0.0
+    for element in zfDicc:
+        db_values = db.getElementValues(zfDicc[element]['db_row'])
+        Tc = db_values['Tc']
+        Pc = db_values['Pc']
+        Bi = calculate_Bi(Pc, tf, Tc)
+        sumatoria += Bi * yi_supuesta
+    return sumatoria
 
-    this_A = math.sqrt(Ax * Ay)
-    this_B = math.sqrt(Bx * By)
-    coef_c = (this_B * p) * ( (this_A**2/this_B) - (this_B*p) - 1)
-    #coef_d = -1 * ((this_A**2/this_B) * ((this_B*p)**2))
-    coef_d = -1 * ((this_A**2/this_B) * ((this_B*p)**2))
+def getRoots(A, B, p):
+    coef_c = (B * p) * ( (A**2/B) - (B*p) - 1)
+    coef_d = -1 * ((A**2/B) * ((B*p)**2))
     roots = np.roots([1, -1, coef_c, coef_d])
+    # for i in range(0, len(roots)):
+    #     roots[i] = float(roots[i])
     roots.sort()
     print('Raices:', roots)
-    Zl = roots[0]
-    Zv = roots[1]
-    print('Zv',Zv)
-    print('Zl',Zl)
-    FIv = coeficiente_de_fugacidad(Zv, p, this_A, this_B, Ai, Bi)
-    # FIv = math.exp(((Zv - 1) * (Bi / this_B)) - math.log(Zv - (this_B * p)) - ((this_A**2 / this_B) * ((2*Ai / this_A) - (Bi / this_B)) * (math.log(1 + ((this_B * p) / Zv)))))
-    FIl = coeficiente_de_fugacidad(Zl, p, this_A, this_B, Ai, Bi)
-    # FIl = math.exp(((Zl - 1) * (Bi / this_B)) - math.log(Zl - (this_B * p)) - ((this_A**2 / this_B) * ((2*Ai / this_A) - (Bi / this_B)) * (math.log(1 + ((this_B * p) / Zl)))))
-    print('FIv:', FIv, 'FIl:', FIl)
-    Kib = FIl/FIv
-    yi_calculada=ki*xi
-    print('yi calculada = Ki·xi')
-    print('yi calculada = ', ki,'*',xi, '=', yi_calculada)
-    input()
+    Z = dict()
+    Z['Zl'] = roots[2]
+    Z['Zv'] = roots[1]
+    print('Zv:',Z['Zv'])
+    print('Zl:',Z['Zl'])
+    return Z
 
-def coeficiente_de_fugacidad(Z, p, this_A, this_B, Ai, Bi):    
-    return math.exp(((Z - 1) * (Bi / this_B)) - math.log(Z - (this_B * p)) - ((this_A**2 / this_B) * ((2*Ai / this_A) - (Bi / this_B)) * (math.log(1 + ((this_B * p) / Z)))))
+def coeficiente_de_fugacidad(Z, p, A, B, Ai, Bi):
+    first_eq = (Z - 1) * (Bi / B)
+    second_eq = math.log(Z - (B * p))
+    subeq3_1 = (A**2 / B) * ((2*Ai / A) - (Bi / B))
+    subeq3_2 = math.log(1 + ((B * p) / Z))
+    third_eq = subeq3_1 * subeq3_2
+    final_eq = first_eq - second_eq - third_eq
+    return math.exp(final_eq)
 
 def main():
     print('Bienvenido: Simulador')
@@ -182,20 +297,30 @@ def main():
     xhkEntry = Entry(root, textvariable=r_op).grid(row=rowCounter, column=1)
 
     if(env_dev_flag):
-        f.set(0.5)
-        elementDicc['Benceno']['is_select'].set(1)
-        elementDicc['Acetona']['is_select'].set(1)
-        elementDicc['Etano']['is_select'].set(1)
-        elementDicc['Benceno']['is_xhf'].set(1)
-        elementDicc['Etano']['is_xlf'].set(1)
-        elementDicc['Benceno']['value'].set(0.1)
-        elementDicc['Acetona']['value'].set(0.3)
-        elementDicc['Etano']['value'].set(0.5)
-        p.set(0.6)
-        tf.set(0.5)
-        columnaP.set(0.3)
-        xlk.set(0.8)
-        xhk.set(0.7)
+        f.set(100)
+        for element in elementDicc:
+            elementDicc[element]['is_select'].set(1)
+            if element == 'n-Hexano':
+                print('----->   Set Etano to XLF',)
+                elementDicc[element]['is_xlf'].set(1)
+            if element == 'o-Xileno':
+                print('----->   Set Cumeno to XHF',)
+                elementDicc[element]['is_xhf'].set(1)
+
+        elementDicc['Benceno']['value'].set(0.05)
+        elementDicc['Acetona']['value'].set(0.01)
+        elementDicc['n-Butano']['value'].set(0.15)
+        elementDicc['Etano']['value'].set(0.05)
+        elementDicc['Cumeno']['value'].set(0.1)
+        elementDicc['n-Heptano']['value'].set(0.1)
+        elementDicc['n-Hexano']['value'].set(0.1)
+        elementDicc['o-Xileno']['value'].set(0.1)
+        elementDicc['Acetato de Etilo']['value'].set(0.1)
+        p.set(1)
+        tf.set(49.8)
+        columnaP.set(1)
+        xlk.set(0.97)
+        xhk.set(0.03)
     startsSimulation = partial(start, f, elementDicc, p, tf, columnaP, xlk, xhk)
 
     rowCounter += 1
