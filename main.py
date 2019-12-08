@@ -4,8 +4,20 @@ from functools import partial
 from burbuja import temperaturaBurbuja
 #import sys
 import db
+from pprint import pprint
 
 env_dev_flag = True
+composiciones_fondo = dict()
+composiciones_fondo['Benceno'] = 0.03
+composiciones_fondo['Acetona'] = 0
+composiciones_fondo['n-Butano'] = 0
+composiciones_fondo['Etano'] = 0
+composiciones_fondo['Cumeno'] = 0.19
+composiciones_fondo['n-Heptano'] = 0.05
+composiciones_fondo['n-Hexano'] = 0.01
+composiciones_fondo['o-Xileno'] = 0.37
+composiciones_fondo['Acetato de Etilo'] = 0.02
+composiciones_fondo['n-Octano'] = 0.33
 
 class Window(Frame):
     def __init__(self, master=None):
@@ -31,12 +43,16 @@ def start(f, zfDicc, p, tf, columnaP, xlk, xhk):
 
     # Flujos de alimentacion de componentes ligero y pesado
     xlf = 0.0
+    xlf_name = None
     xhf = 0.0
-    for item in zfDicc:
-        if zfDicc[item]['is_xlf'].get() == 1:
-            xlf = float(zfDicc[item]['value'].get())
-        if zfDicc[item]['is_xhf'].get() == 1:
-            xhf = float(zfDicc[item]['value'].get())
+    xhf_name = None
+    for element in zfDicc:
+        if zfDicc[element]['is_xlf'].get() == 1:
+            xlf = float(zfDicc[element]['value'].get())
+            xlf_name = element
+        if zfDicc[element]['is_xhf'].get() == 1:
+            xhf = float(zfDicc[element]['value'].get())
+            xhf_name = element
     
     flf = xlf * f
     fhf = xhf * f
@@ -49,13 +65,54 @@ def start(f, zfDicc, p, tf, columnaP, xlk, xhk):
 
     print('-> Calcular temp de burbuja')
     it_count = 0
-    result_t_burbuja = temperaturaBurbuja(p, zfDicc, tf)
+    result_t_burbuja = temperaturaBurbuja(columnaP, zfDicc, tf)
     while not result_t_burbuja['status']:
         it_count+=1
         print('Iteracion:', it_count)
-        result_t_burbuja = temperaturaBurbuja(p, zfDicc, result_t_burbuja['Td'])
+        result_t_burbuja = temperaturaBurbuja(columnaP, zfDicc, result_t_burbuja['Td'])
     print('TD Obtenida:', result_t_burbuja['Td'])
+    
+    Td_obtenida = result_t_burbuja['Td']
+    #yi_obtenida = result_t_burbuja['yis_calculadas']
+    kibs_d_obtenida = result_t_burbuja['kib_calculadas']
+    
+    # Copia de diccionario
+    it_count = 0
+    dict_componentes = dict(zfDicc)
+    for element in dict_componentes:
+        xiw = composiciones_fondo[element]
+        dict_componentes[element]['value'] = StringVar()
+        dict_componentes[element]['value'].set(xiw)
+
+    result_t_burbuja = temperaturaBurbuja(columnaP, dict_componentes, tf)
+    while not result_t_burbuja['status']:
+        it_count+=1
+        print('Iteracion:', it_count)
+        result_t_burbuja = temperaturaBurbuja(columnaP, dict_componentes, result_t_burbuja['Td'])
+    print('TW Obtenida:', result_t_burbuja['Td'])
+
+    Tw_obtenida = result_t_burbuja['Td']
+    kibs_w_obtenida = result_t_burbuja['kib_calculadas']
+
+    alfa_iD = 0.0
+    alfa_iW = 0.0
+    print('Kibs D:')
+    pprint(kibs_d_obtenida)
+    print('Kibs W:')
+    pprint(kibs_w_obtenida)
+    print('Pesado:', xhf_name)
+    KidH = kibs_d_obtenida[xhf_name]
+    KiwH = kibs_w_obtenida[xhf_name]
+    print(KidH, KiwH)
+    for element in zfDicc:
+        alfa_iD = kibs_d_obtenida[element] / KidH
+        alfa_iW = kibs_w_obtenida[element] / KiwH
+        zfDicc[element]['alfa_iD'] = alfa_iD
+        zfDicc[element]['alfa_iW'] = alfa_iW
+        print(element, 'alfa_iD:', alfa_iD, 'alfa_iW', alfa_iW)
+
     return
+
 
 
 def main():
@@ -144,6 +201,7 @@ def main():
         elementDicc['n-Hexano']['value'].set(0.1)
         elementDicc['o-Xileno']['value'].set(0.1)
         elementDicc['Acetato de Etilo']['value'].set(0.1)
+        elementDicc['n-Octano']['value'].set(0.1)
         p.set(1)
         tf.set(49.8)
         columnaP.set(1)

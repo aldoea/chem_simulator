@@ -4,7 +4,9 @@ import db
 
 def temperaturaBurbuja(p, zfDicc, tf):
     Td_obtenida = 0.0
-    yis_calculadas = list()
+    yis_calculadas = dict()
+    yis_calculadas_list = list()
+    kib_calculadas = dict()
     result = dict()
     for element in zfDicc:
         # Fijar P y composición
@@ -26,16 +28,19 @@ def temperaturaBurbuja(p, zfDicc, tf):
             normalizado = abs(yi_supuesta - yi_calculada)
             #print('abs(yi_supuesta - yi_calculada) => ', yi_supuesta, '-', yi_calculada, '=', normalizado)
             if(normalizado  < 0.001):
-                yis_calculadas.append(yi_calculada)
+                yis_calculadas[element] = yi_calculada
+                kib_calculadas[element] = Kib
+                yis_calculadas_list.append(yi_calculada)
                 #print('->Yis calculadas totales:', len(yis_calculadas), 'Cantidad de componentes:', len(zfDicc))
-                if len(yis_calculadas) == len(zfDicc):
-                    f = 1 - sum(yis_calculadas)
+                if len(yis_calculadas_list) == len(zfDicc):
+                    f = 1 - sum(yis_calculadas_list)
                     if f >= -0.01 and f <= 0.01:
                         print('<------------------------------------------------>')
                         Td_obtenida = td
                         result['status'] = True
                         result['Td'] = Td_obtenida
                         result['yis_calculadas'] = yis_calculadas
+                        result['kib_calculadas'] = kib_calculadas
                         return result
                     else:
                         delta_td = 0
@@ -55,7 +60,6 @@ def temperaturaBurbuja(p, zfDicc, tf):
             else:
                 yi_supuesta = yi_calculada
                 Kib = calculate_Kib(db_values, zfDicc, td, p)
-                print('Nuevo Kib:', Kib)
 
 def calculate_Ki(p, td, db_values):
     A = db_values['A']
