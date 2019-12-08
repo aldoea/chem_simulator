@@ -2,6 +2,7 @@
 from tkinter import *
 from functools import partial
 from burbuja import temperaturaBurbuja
+from flash import start_flash_isotermico
 #import sys
 import db
 from pprint import pprint
@@ -63,54 +64,56 @@ def start(f, zfDicc, p, tf, columnaP, xlk, xhk):
     flw = flf - fld
     fhw = fhf - fhd
 
-    print('-> Calcular temp de burbuja')
-    it_count = 0
-    result_t_burbuja = temperaturaBurbuja(columnaP, zfDicc, tf)
-    while not result_t_burbuja['status']:
-        it_count+=1
-        print('Iteracion:', it_count)
-        result_t_burbuja = temperaturaBurbuja(columnaP, zfDicc, result_t_burbuja['Td'])
-    print('TD Obtenida:', result_t_burbuja['Td'])
+    # print('-> Calcular temp de burbuja')
+    # it_count = 0
+    # result_t_burbuja = temperaturaBurbuja(columnaP, zfDicc, tf)
+    # while not result_t_burbuja['status']:
+    #     it_count+=1
+    #     print('Iteracion:', it_count)
+    #     result_t_burbuja = temperaturaBurbuja(columnaP, zfDicc, result_t_burbuja['Td'])
+    # print('TD Obtenida:', result_t_burbuja['Td'])
     
-    Td_obtenida = result_t_burbuja['Td']
-    #yi_obtenida = result_t_burbuja['yis_calculadas']
-    kibs_d_obtenida = result_t_burbuja['kib_calculadas']
+    # Td_obtenida = result_t_burbuja['Td']
+    # #yi_obtenida = result_t_burbuja['yis_calculadas']
+    # kibs_d_obtenida = result_t_burbuja['kib_calculadas']
     
-    # Copia de diccionario
-    it_count = 0
-    dict_componentes = dict(zfDicc)
-    for element in dict_componentes:
-        xiw = composiciones_fondo[element]
-        dict_componentes[element]['value'] = StringVar()
-        dict_componentes[element]['value'].set(xiw)
+    # # Copia de diccionario
+    # it_count = 0
+    # dict_componentes = dict(zfDicc)
+    # for element in dict_componentes:
+    #     xiw = composiciones_fondo[element]
+    #     dict_componentes[element]['value'] = StringVar()
+    #     dict_componentes[element]['value'].set(xiw)
 
-    result_t_burbuja = temperaturaBurbuja(columnaP, dict_componentes, tf)
-    while not result_t_burbuja['status']:
-        it_count+=1
-        print('Iteracion:', it_count)
-        result_t_burbuja = temperaturaBurbuja(columnaP, dict_componentes, result_t_burbuja['Td'])
-    print('TW Obtenida:', result_t_burbuja['Td'])
+    # result_t_burbuja = temperaturaBurbuja(columnaP, dict_componentes, tf)
+    # while not result_t_burbuja['status']:
+    #     it_count+=1
+    #     print('Iteracion:', it_count)
+    #     result_t_burbuja = temperaturaBurbuja(columnaP, dict_componentes, result_t_burbuja['Td'])
+    # print('TW Obtenida:', result_t_burbuja['Td'])
 
-    Tw_obtenida = result_t_burbuja['Td']
-    kibs_w_obtenida = result_t_burbuja['kib_calculadas']
+    # Tw_obtenida = result_t_burbuja['Td']
+    # kibs_w_obtenida = result_t_burbuja['kib_calculadas']
 
-    alfa_iD = 0.0
-    alfa_iW = 0.0
-    print('Kibs D:')
-    pprint(kibs_d_obtenida)
-    print('Kibs W:')
-    pprint(kibs_w_obtenida)
-    print('Pesado:', xhf_name)
-    KidH = kibs_d_obtenida[xhf_name]
-    KiwH = kibs_w_obtenida[xhf_name]
-    print(KidH, KiwH)
-    for element in zfDicc:
-        alfa_iD = kibs_d_obtenida[element] / KidH
-        alfa_iW = kibs_w_obtenida[element] / KiwH
-        zfDicc[element]['alfa_iD'] = alfa_iD
-        zfDicc[element]['alfa_iW'] = alfa_iW
-        print(element, 'alfa_iD:', alfa_iD, 'alfa_iW', alfa_iW)
+    # alfa_iD = 0.0
+    # alfa_iW = 0.0
+    # print('Kibs D:')
+    # pprint(kibs_d_obtenida)
+    # print('Kibs W:')
+    # pprint(kibs_w_obtenida)
+    # print('Pesado:', xhf_name)
+    # KidH = kibs_d_obtenida[xhf_name]
+    # KiwH = kibs_w_obtenida[xhf_name]
+    # print(KidH, KiwH)
+    # for element in zfDicc:
+    #     alfa_iD = kibs_d_obtenida[element] / KidH
+    #     alfa_iW = kibs_w_obtenida[element] / KiwH
+    #     zfDicc[element]['alfa_iD'] = alfa_iD
+    #     zfDicc[element]['alfa_iW'] = alfa_iW
+    #     print(element, 'alfa_iD:', alfa_iD, 'alfa_iW', alfa_iW)
 
+    print(" --------- FLASH ------------")
+    HF = start_flash_isotermico(tf, p, zfDicc)
     return
 
 

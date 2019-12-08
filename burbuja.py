@@ -158,7 +158,7 @@ def getRoots(A, B, p):
     # for i in range(0, len(roots)):
     #     roots[i] = float(roots[i])
     roots.sort()
-    #print('Raices:', roots)
+    print('Raices:', roots)
     Z = dict()
     Z['Zl'] = roots[2]
     Z['Zv'] = roots[1]
