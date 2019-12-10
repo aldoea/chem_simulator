@@ -8,9 +8,10 @@ def temperaturaBurbuja(p, zfDicc, tf):
     yis_calculadas_list = list()
     kib_calculadas = dict()
     result = dict()
+
     for element in zfDicc:
         # Fijar P y composición
-        xi = float(zfDicc[element]['value'].get())
+        xi = zfDicc[element]['Xi']
         # Estimar Td
         td = tf
         # Obtener valores de BD para el elemento
@@ -110,7 +111,7 @@ def calculate_Bx(zfDicc, tf):
         Tc = db_values['Tc']
         Pc = db_values['Pc']
         Bi = calculate_Bi(Pc, tf, Tc)
-        xi = float(zfDicc[element]['value'].get())
+        xi = zfDicc[element]['Xi']
         sumatoria += Bi * xi
     return sumatoria
 
@@ -121,7 +122,7 @@ def calculate_Ax(zfDicc, tf):
         Tc = db_values['Tc']
         Pc = db_values['Pc']
         Ai = calculate_Ai(Pc, tf, Tc)
-        xi = float(zfDicc[element]['value'].get())
+        xi = zfDicc[element]['Xi']
         sumatoria += Ai * xi
     return sumatoria
 
@@ -132,7 +133,7 @@ def calculate_Ay(zfDicc, tf, p):
         Tc = db_values['Tc']
         Pc = db_values['Pc']
         Ai = calculate_Ai(Pc, tf, Tc)
-        xi = float(zfDicc[element]['value'].get())
+        xi = zfDicc[element]['Xi']
         ki = calculate_Ki(p, tf, db_values)
         yi_supuesta = calculate_yi_supuesta(ki, xi)
         sumatoria += Ai * yi_supuesta
@@ -145,7 +146,7 @@ def calculate_By(zfDicc, tf, p):
         Tc = db_values['Tc']
         Pc = db_values['Pc']
         Bi = calculate_Bi(Pc, tf, Tc)
-        xi = float(zfDicc[element]['value'].get())
+        xi = zfDicc[element]['Xi']
         ki = calculate_Ki(p, tf, db_values)
         yi_supuesta = calculate_yi_supuesta(ki, xi)
         sumatoria += Bi * yi_supuesta
@@ -158,10 +159,10 @@ def getRoots(A, B, p):
     # for i in range(0, len(roots)):
     #     roots[i] = float(roots[i])
     roots.sort()
-    print('Raices:', roots)
+    #print('Raices:', roots)
     Z = dict()
-    Z['Zl'] = roots[2]
-    Z['Zv'] = roots[1]
+    Z['Zl'] = roots[1]
+    Z['Zv'] = roots[2]
     #print('Zv:',Z['Zv'])
     #print('Zl:',Z['Zl'])
     return Z

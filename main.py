@@ -3,22 +3,14 @@ from tkinter import *
 from functools import partial
 from burbuja import temperaturaBurbuja
 from flash import start_flash_isotermico
-#import sys
-import db
+from termcolor import colored
 from pprint import pprint
+from copy import deepcopy
+import math
+import sys
+import db
 
 env_dev_flag = True
-composiciones_fondo = dict()
-composiciones_fondo['Benceno'] = 0.03
-composiciones_fondo['Acetona'] = 0
-composiciones_fondo['n-Butano'] = 0
-composiciones_fondo['Etano'] = 0
-composiciones_fondo['Cumeno'] = 0.19
-composiciones_fondo['n-Heptano'] = 0.05
-composiciones_fondo['n-Hexano'] = 0.01
-composiciones_fondo['o-Xileno'] = 0.37
-composiciones_fondo['Acetato de Etilo'] = 0.02
-composiciones_fondo['n-Octano'] = 0.33
 
 class Window(Frame):
     def __init__(self, master=None):
@@ -26,11 +18,33 @@ class Window(Frame):
         self.master = master
 
 def purgeDicc(zfDicc):
-    r = dict(zfDicc)
-    for item in zfDicc:
-        if(not zfDicc[item]['is_select'].get() == 1):
-            del r[item]
-    return r
+    new_dict = dict(zfDicc)
+    for element in zfDicc:
+        if(not zfDicc[element]['is_select'].get() == 1):
+            del new_dict[element]
+        else:
+            new_dict[element]['Zi'] = float(zfDicc[element]['value'].get())
+            del new_dict[element]['value']
+            del new_dict[element]['is_select']
+            if zfDicc[element]['is_xlf'].get() == 1:
+                new_dict[element]['is_xlf'] = 1
+                new_dict[element]['is_xhf'] = 0
+            elif zfDicc[element]['is_xhf'].get() == 1:
+                new_dict[element]['is_xhf'] = 1
+                new_dict[element]['is_xlf'] = 0
+            else:
+                new_dict[element]['is_xlf'] = 0
+                new_dict[element]['is_xhf'] = 0
+    return new_dict
+
+def calculate_TxxK(row_pos, columnaP):
+    db_values = db.getElementValues(row_pos)
+    A = db_values['A']
+    B = db_values['B']
+    C = db_values['C']
+    temperatura = (B / (A - math.log(columnaP))) - C
+    return temperatura
+
 
 def start(f, zfDicc, p, tf, columnaP, xlk, xhk):
 
@@ -42,81 +56,214 @@ def start(f, zfDicc, p, tf, columnaP, xlk, xhk):
     xlk = float(xlk.get())
     xhk = float(xhk.get())
 
-    # Flujos de alimentacion de componentes ligero y pesado
+    # Determinar valores de pesado y ligero
     xlf = 0.0
     xlf_name = None
+    xlf_list_pos = None
     xhf = 0.0
     xhf_name = None
+    xhf_list_pos = None
     for element in zfDicc:
-        if zfDicc[element]['is_xlf'].get() == 1:
-            xlf = float(zfDicc[element]['value'].get())
+        zfDicc[element]['FxF'] = zfDicc[element]['Zi'] * f
+        if zfDicc[element]['is_xlf'] == 1:
+            xlf = zfDicc[element]['Zi']
             xlf_name = element
-        if zfDicc[element]['is_xhf'].get() == 1:
-            xhf = float(zfDicc[element]['value'].get())
+            xlf_list_pos = zfDicc[element]['db_row']
+        if zfDicc[element]['is_xhf'] == 1:
+            xhf = zfDicc[element]['Zi']
             xhf_name = element
+            xhf_list_pos = zfDicc[element]['db_row']
     
+    # Calculo de flujos de alimentacion de ligero y pesado
     flf = xlf * f
     fhf = xhf * f
-
 	# Flujos de componentes en el domo y fondo
     fld = flf * xlk
     fhd = fhf * xhk
-    flw = flf - fld
     fhw = fhf - fhd
-
-    # print('-> Calcular temp de burbuja')
-    # it_count = 0
-    # result_t_burbuja = temperaturaBurbuja(columnaP, zfDicc, tf)
-    # while not result_t_burbuja['status']:
-    #     it_count+=1
-    #     print('Iteracion:', it_count)
-    #     result_t_burbuja = temperaturaBurbuja(columnaP, zfDicc, result_t_burbuja['Td'])
-    # print('TD Obtenida:', result_t_burbuja['Td'])
+    flw = flf - fld
+    # Calculo de Ftd y Ftw
+    Ftd = 0.0
+    Ftw = 0.0
+    i = 1
+    for element in zfDicc:
+        if i < xhf_list_pos:    
+            fxf = zfDicc[element]['FxF']
+            Ftd += fxf 
+        elif i >= xhf_list_pos:
+            fxf = zfDicc[element]['FxF']
+            Ftw += fxf
+        i += 1
     
-    # Td_obtenida = result_t_burbuja['Td']
-    # #yi_obtenida = result_t_burbuja['yis_calculadas']
-    # kibs_d_obtenida = result_t_burbuja['kib_calculadas']
+    Ftd += fld + fhd
+    Ftw += flw + fhw
     
-    # # Copia de diccionario
-    # it_count = 0
-    # dict_componentes = dict(zfDicc)
-    # for element in dict_componentes:
-    #     xiw = composiciones_fondo[element]
-    #     dict_componentes[element]['value'] = StringVar()
-    #     dict_componentes[element]['value'].set(xiw)
 
-    # result_t_burbuja = temperaturaBurbuja(columnaP, dict_componentes, tf)
-    # while not result_t_burbuja['status']:
-    #     it_count+=1
-    #     print('Iteracion:', it_count)
-    #     result_t_burbuja = temperaturaBurbuja(columnaP, dict_componentes, result_t_burbuja['Td'])
-    # print('TW Obtenida:', result_t_burbuja['Td'])
+    # Valores de arranque para Domo
+    i = 1
+    for element in zfDicc:
+        if i < xhf_list_pos and i != xlf_list_pos:
+            xi = zfDicc[element]['FxF'] / Ftd
+            zfDicc[element]['Xi'] = xi
+        elif i == xlf_list_pos:
+            xi = fld / Ftd
+            zfDicc[element]['Xi'] = xi
+        elif i == xhf_list_pos:
+            xi = fhd / Ftd
+            zfDicc[element]['Xi'] = xi
+        else:
+            zfDicc[element]['Xi'] = 0
+        i += 1
+    
+    print('Arranque para D')
+    for element in zfDicc:
+        print(element, ':', zfDicc[element]['Xi'])
+    # Temperatura Domo
+    TDLK = calculate_TxxK(xlf_list_pos, columnaP)
+    # Temperatura W
+    TWHK = calculate_TxxK(xhf_list_pos, columnaP)
+    print('Ligero:', xlf_name, 'Pesado:', xhf_name)
+    print('TDLK:', TDLK, 'TWHK:', TWHK)
+    print('Ftd:', Ftd, 'Ftw:', Ftw)
+    # Copia de diccionario
+    zfDiccV2 = deepcopy(zfDicc)
+    # Valores de arranque para fondo
+    i = 1
+    for element in zfDiccV2:
+        if i > xhf_list_pos:
+            xiw = zfDiccV2[element]['FxF'] / Ftw
+            zfDiccV2[element]['Xi'] = xiw
+        elif i == xhf_list_pos:
+            xiw = fhw / Ftw
+            zfDiccV2[element]['Xi'] = xiw
+        elif i == xlf_list_pos:
+            xiw = flw / Ftw
+            zfDiccV2[element]['Xi'] = xiw
+        else:
+            zfDiccV2[element]['Xi'] = 0
+        i += 1
+    print('Arranque para W')
+    for element in zfDiccV2:
+        print(element, ':', zfDiccV2[element]['Xi'])
 
-    # Tw_obtenida = result_t_burbuja['Td']
-    # kibs_w_obtenida = result_t_burbuja['kib_calculadas']
+    megaiterator = 0
+    dictCompare = None
+    while True:
+        print(" --------- TEMP BURBUJA Domo ------------")
 
-    # alfa_iD = 0.0
-    # alfa_iW = 0.0
-    # print('Kibs D:')
-    # pprint(kibs_d_obtenida)
-    # print('Kibs W:')
-    # pprint(kibs_w_obtenida)
-    # print('Pesado:', xhf_name)
-    # KidH = kibs_d_obtenida[xhf_name]
-    # KiwH = kibs_w_obtenida[xhf_name]
-    # print(KidH, KiwH)
-    # for element in zfDicc:
-    #     alfa_iD = kibs_d_obtenida[element] / KidH
-    #     alfa_iW = kibs_w_obtenida[element] / KiwH
-    #     zfDicc[element]['alfa_iD'] = alfa_iD
-    #     zfDicc[element]['alfa_iW'] = alfa_iW
-    #     print(element, 'alfa_iD:', alfa_iD, 'alfa_iW', alfa_iW)
+        it_count = 0
+        result_d_burbuja = temperaturaBurbuja(columnaP, zfDicc, TDLK)
+        while not result_d_burbuja['status']:
+            it_count+=1
+            print('Iteracion en D:', it_count)
+            result_d_burbuja = temperaturaBurbuja(columnaP, zfDicc, result_d_burbuja['Td'])
+        
+        Td_obtenida = result_d_burbuja['Td']
+        kibs_d_obtenida = result_d_burbuja['kib_calculadas']
+       
+        
+        print(" --------- TEMP BURBUJA W ------------")
+        it_count = 0
+        result_w_burbuja = temperaturaBurbuja(columnaP, zfDiccV2, TWHK)
+        while not result_w_burbuja['status']:
+            it_count+=1
+            print('Iteracion en W:', it_count)
+            result_w_burbuja = temperaturaBurbuja(columnaP, zfDiccV2, result_w_burbuja['Td'])
+        
+        Tw_obtenida = result_w_burbuja['Td']
+        kibs_w_obtenida = result_w_burbuja['kib_calculadas']
+        
+        print('TW Obtenida:', Tw_obtenida)
+        print('TD Obtenida:', Td_obtenida)
 
-    print(" --------- FLASH ------------")
-    HF = start_flash_isotermico(tf, p, zfDicc)
+        alfa_iD = 0.0
+        alfa_iW = 0.0
+        print('Kibs D:')
+        pprint(kibs_d_obtenida)
+        print('Kibs W:')
+        pprint(kibs_w_obtenida)
+        KidH = kibs_d_obtenida[xhf_name]
+        KiwH = kibs_w_obtenida[xhf_name]
+        for element in zfDicc:
+            alfa_iD = kibs_d_obtenida[element] / KidH
+            alfa_iW = kibs_w_obtenida[element] / KiwH
+            zfDicc[element]['alfa_iD'] = alfa_iD
+            zfDicc[element]['alfa_iW'] = alfa_iW
+            print(element, 'alfa_iD:', alfa_iD, 'alfa_iW', alfa_iW)
+
+        alfaLKD = zfDicc[xlf_name]['alfa_iD']
+        alfaLKW = zfDicc[xlf_name]['alfa_iW']
+        alfaL_prom = math.sqrt(alfaLKW * alfaLKW)
+
+        Nmin = math.log((fld / fhd) * (fhw / flw)) / math.log(alfaL_prom)
+
+        for element in zfDicc:
+            alfaID_prom = math.sqrt(kibs_d_obtenida[element] * zfDicc[element]['alfa_iD'])
+            alfaIW_prom = math.sqrt(kibs_w_obtenida[element] * zfDicc[element]['alfa_iW'])
+            zfDicc[element]['alfaID_prom'] = alfaID_prom
+            zfDicc[element]['alfaIW_prom'] = alfaIW_prom
+
+        D = 0.0
+        W = 0.0
+        for element in zfDicc:
+            if element != xlf_name and element != xhf_name:
+                F = zfDicc[element]['FxF']
+                alfaID_prom = zfDicc[element]['alfaID_prom']
+                alfaIW_prom = zfDicc[element]['alfaIW_prom'] 
+                biNK = F / (1 + ((fhd / fhw) * alfaIW_prom**Nmin))
+                diNK = (F * (fhd / fhw) * alfaID_prom**Nmin) / (1 + ((fhd / fhw) * alfaID_prom**Nmin))
+                zfDicc[element]['biNK'] = biNK
+                zfDicc[element]['diNK'] = diNK
+                if diNK > 0:
+                    D += diNK
+                if biNK > 0:
+                    W += biNK
+
+        D += fld + fhd
+        W += fhw + flw
+
+        if megaiterator > 0:
+            if comparate(zfDicc, dictCompare, xlf_name, xhf_name):
+                input('Estas a un enter de ganar :D')
+                break
+        else:
+            dictCompare = dict(zfDicc)
+            TDLK = Td_obtenida
+            TWHK = Tw_obtenida
+        
+        for element in zfDicc:
+            if element != xlf_name and element != xhf_name:
+                zfDicc[element]['Xi'] = zfDicc[element]['diNK'] / D 
+                zfDiccV2[element]['Xi'] = zfDicc[element]['biNK'] / W
+            elif element == xlf_name:
+                zfDicc[element]['Xi'] = fld / D # D
+                zfDiccV2[element]['Xi'] = flw / W # W
+            elif element == xhf_name:
+                zfDicc[element]['Xi'] = fhd / D # D
+                zfDiccV2[element]['Xi'] = fhw / W # W
+
+        megaiterator+=1
+        print(colored('______________________COMPLETE ITERATION LOOP AT: ' + str(megaiterator), 'red'))
+
+    print(colored('πππ_πππ_πππ_πππ_πππ_πππ PROCESSO TERMINADO CON EXITO', 'cyan'))
+    sys.exit()
+
+    # print(" --------- FLASH ------------")
+    # HF = start_flash_isotermico(tf, p, zfDicc)
     return
 
-
+def comparate(dict1, dict2, xlf_name, xhf_name):
+    for element in dict1:
+        if element != xlf_name and element != xhf_name:
+            biNK1 = dict1[element]['biNK']
+            diNK1 = dict1[element]['diNK']
+            biNK2 = dict2[element]['biNK']
+            diNK2 = dict2[element]['diNK']
+            if abs(biNK1 - biNK2) > 0.1:
+                return False
+            if abs(diNK1 - diNK2) > 0.1:
+                return False
+    return True
 
 def main():
     print('Bienvenido: Simulador')
@@ -188,12 +335,12 @@ def main():
         f.set(100)
         for element in elementDicc:
             elementDicc[element]['is_select'].set(1)
-            if element == 'n-Hexano':
-                print('----->   Set Etano to XLF',)
-                elementDicc[element]['is_xlf'].set(1)
-            if element == 'o-Xileno':
-                print('----->   Set Cumeno to XHF',)
-                elementDicc[element]['is_xhf'].set(1)
+            # if element == 'n-Hexano':
+            #     print('----->   Set Etano to XLF',)
+            #     elementDicc[element]['is_xlf'].set(1)
+            # if element == 'Acetato de Etilo':
+            #     print('----->   Set Cumeno to XHF',)
+            #     elementDicc[element]['is_xhf'].set(1)
 
         elementDicc['Benceno']['value'].set(0.05)
         elementDicc['Acetona']['value'].set(0.01)
@@ -206,8 +353,8 @@ def main():
         elementDicc['Acetato de Etilo']['value'].set(0.1)
         elementDicc['n-Octano']['value'].set(0.1)
         p.set(1)
-        tf.set(49.8)
-        columnaP.set(1)
+        tf.set(60)
+        columnaP.set(4)
         xlk.set(0.97)
         xhk.set(0.03)
     startsSimulation = partial(start, f, elementDicc, p, tf, columnaP, xlk, xhk)
