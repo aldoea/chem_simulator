@@ -148,108 +148,105 @@ def start(f, zfDicc, p, tf, columnaP, xlk, xhk):
 
     megaiterator = 0
     dictCompare = None
-    while True:
-        print(" --------- TEMP BURBUJA Domo ------------")
+    # while True:
+    #     print(" --------- TEMP BURBUJA Domo ------------")
 
-        it_count = 0
-        result_d_burbuja = temperaturaBurbuja(columnaP, zfDicc, TDLK)
-        while not result_d_burbuja['status']:
-            it_count+=1
-            print('Iteracion en D:', it_count)
-            result_d_burbuja = temperaturaBurbuja(columnaP, zfDicc, result_d_burbuja['Td'])
+    #     it_count = 0
+    #     result_d_burbuja = temperaturaBurbuja(columnaP, zfDicc, TDLK)
+    #     while not result_d_burbuja['status']:
+    #         it_count+=1
+    #         print('Iteracion en D:', it_count)
+    #         result_d_burbuja = temperaturaBurbuja(columnaP, zfDicc, result_d_burbuja['Td'])
         
-        Td_obtenida = result_d_burbuja['Td']
-        kibs_d_obtenida = result_d_burbuja['kib_calculadas']
+    #     Td_obtenida = result_d_burbuja['Td']
+    #     kibs_d_obtenida = result_d_burbuja['kib_calculadas']
        
         
-        print(" --------- TEMP BURBUJA W ------------")
-        it_count = 0
-        result_w_burbuja = temperaturaBurbuja(columnaP, zfDiccV2, TWHK)
-        while not result_w_burbuja['status']:
-            it_count+=1
-            print('Iteracion en W:', it_count)
-            result_w_burbuja = temperaturaBurbuja(columnaP, zfDiccV2, result_w_burbuja['Td'])
+    #     print(" --------- TEMP BURBUJA W ------------")
+    #     it_count = 0
+    #     result_w_burbuja = temperaturaBurbuja(columnaP, zfDiccV2, TWHK)
+    #     while not result_w_burbuja['status']:
+    #         it_count+=1
+    #         print('Iteracion en W:', it_count)
+    #         result_w_burbuja = temperaturaBurbuja(columnaP, zfDiccV2, result_w_burbuja['Td'])
         
-        Tw_obtenida = result_w_burbuja['Td']
-        kibs_w_obtenida = result_w_burbuja['kib_calculadas']
+    #     Tw_obtenida = result_w_burbuja['Td']
+    #     kibs_w_obtenida = result_w_burbuja['kib_calculadas']
         
-        print('TW Obtenida:', Tw_obtenida)
-        print('TD Obtenida:', Td_obtenida)
+    #     print('TW Obtenida:', Tw_obtenida)
+    #     print('TD Obtenida:', Td_obtenida)
 
-        alfa_iD = 0.0
-        alfa_iW = 0.0
-        print('Kibs D:')
-        pprint(kibs_d_obtenida)
-        print('Kibs W:')
-        pprint(kibs_w_obtenida)
-        KidH = kibs_d_obtenida[xhf_name]
-        KiwH = kibs_w_obtenida[xhf_name]
-        for element in zfDicc:
-            alfa_iD = kibs_d_obtenida[element] / KidH
-            alfa_iW = kibs_w_obtenida[element] / KiwH
-            zfDicc[element]['alfa_iD'] = alfa_iD
-            zfDicc[element]['alfa_iW'] = alfa_iW
-            print(element, 'alfa_iD:', alfa_iD, 'alfa_iW', alfa_iW)
+    #     alfa_iD = 0.0
+    #     alfa_iW = 0.0
+    #     print('Kibs D:')
+    #     pprint(kibs_d_obtenida)
+    #     print('Kibs W:')
+    #     pprint(kibs_w_obtenida)
+    #     KidH = kibs_d_obtenida[xhf_name]
+    #     KiwH = kibs_w_obtenida[xhf_name]
+    #     for element in zfDicc:
+    #         alfa_iD = kibs_d_obtenida[element] / KidH
+    #         alfa_iW = kibs_w_obtenida[element] / KiwH
+    #         zfDicc[element]['alfa_iD'] = alfa_iD
+    #         zfDicc[element]['alfa_iW'] = alfa_iW
+    #         print(element, 'alfa_iD:', alfa_iD, 'alfa_iW', alfa_iW)
 
-        alfaLKD = zfDicc[xlf_name]['alfa_iD']
-        alfaLKW = zfDicc[xlf_name]['alfa_iW']
-        alfaL_prom = math.sqrt(alfaLKW * alfaLKW)
+    #     alfaLKD = zfDicc[xlf_name]['alfa_iD']
+    #     alfaLKW = zfDicc[xlf_name]['alfa_iW']
+    #     alfaL_prom = math.sqrt(alfaLKW * alfaLKW)
 
-        Nmin = math.log((fld / fhd) * (fhw / flw)) / math.log(alfaL_prom)
+    #     Nmin = math.log((fld / fhd) * (fhw / flw)) / math.log(alfaL_prom)
 
-        for element in zfDicc:
-            alfaID_prom = math.sqrt(kibs_d_obtenida[element] * zfDicc[element]['alfa_iD'])
-            alfaIW_prom = math.sqrt(kibs_w_obtenida[element] * zfDicc[element]['alfa_iW'])
-            zfDicc[element]['alfaID_prom'] = alfaID_prom
-            zfDicc[element]['alfaIW_prom'] = alfaIW_prom
+    #     for element in zfDicc:
+    #         alfaID_prom = math.sqrt(kibs_d_obtenida[element] * zfDicc[element]['alfa_iD'])
+    #         alfaIW_prom = math.sqrt(kibs_w_obtenida[element] * zfDicc[element]['alfa_iW'])
+    #         zfDicc[element]['alfaID_prom'] = alfaID_prom
+    #         zfDicc[element]['alfaIW_prom'] = alfaIW_prom
 
-        D = 0.0
-        W = 0.0
-        for element in zfDicc:
-            if element != xlf_name and element != xhf_name:
-                F = zfDicc[element]['FxF']
-                alfaID_prom = zfDicc[element]['alfaID_prom']
-                alfaIW_prom = zfDicc[element]['alfaIW_prom'] 
-                biNK = F / (1 + ((fhd / fhw) * alfaIW_prom**Nmin))
-                diNK = (F * (fhd / fhw) * alfaID_prom**Nmin) / (1 + ((fhd / fhw) * alfaID_prom**Nmin))
-                zfDicc[element]['biNK'] = biNK
-                zfDicc[element]['diNK'] = diNK
-                if diNK > 0:
-                    D += diNK
-                if biNK > 0:
-                    W += biNK
+    #     D = 0.0
+    #     W = 0.0
+    #     for element in zfDicc:
+    #         if element != xlf_name and element != xhf_name:
+    #             F = zfDicc[element]['FxF']
+    #             alfaID_prom = zfDicc[element]['alfaID_prom']
+    #             alfaIW_prom = zfDicc[element]['alfaIW_prom'] 
+    #             biNK = F / (1 + ((fhd / fhw) * alfaIW_prom**Nmin))
+    #             diNK = (F * (fhd / fhw) * alfaID_prom**Nmin) / (1 + ((fhd / fhw) * alfaID_prom**Nmin))
+    #             zfDicc[element]['biNK'] = biNK
+    #             zfDicc[element]['diNK'] = diNK
+    #             if diNK > 0:
+    #                 D += diNK
+    #             if biNK > 0:
+    #                 W += biNK
 
-        D += fld + fhd
-        W += fhw + flw
+    #     D += fld + fhd
+    #     W += fhw + flw
 
-        if megaiterator > 0:
-            if comparate(zfDicc, dictCompare, xlf_name, xhf_name):
-                input('Estas a un enter de ganar :D')
-                break
-        else:
-            dictCompare = dict(zfDicc)
-            TDLK = Td_obtenida
-            TWHK = Tw_obtenida
+    #     if megaiterator > 0:
+    #         if comparate(zfDicc, dictCompare, xlf_name, xhf_name):
+    #             input('Estas a un enter de ganar :D')
+    #             break
+    #     else:
+    #         dictCompare = dict(zfDicc)
+    #         TDLK = Td_obtenida
+    #         TWHK = Tw_obtenida
         
-        for element in zfDicc:
-            if element != xlf_name and element != xhf_name:
-                zfDicc[element]['Xi'] = zfDicc[element]['diNK'] / D 
-                zfDiccV2[element]['Xi'] = zfDicc[element]['biNK'] / W
-            elif element == xlf_name:
-                zfDicc[element]['Xi'] = fld / D # D
-                zfDiccV2[element]['Xi'] = flw / W # W
-            elif element == xhf_name:
-                zfDicc[element]['Xi'] = fhd / D # D
-                zfDiccV2[element]['Xi'] = fhw / W # W
+    #     for element in zfDicc:
+    #         if element != xlf_name and element != xhf_name:
+    #             zfDicc[element]['Xi'] = zfDicc[element]['diNK'] / D 
+    #             zfDiccV2[element]['Xi'] = zfDicc[element]['biNK'] / W
+    #         elif element == xlf_name:
+    #             zfDicc[element]['Xi'] = fld / D # D
+    #             zfDiccV2[element]['Xi'] = flw / W # W
+    #         elif element == xhf_name:
+    #             zfDicc[element]['Xi'] = fhd / D # D
+    #             zfDiccV2[element]['Xi'] = fhw / W # W
 
-        megaiterator+=1
-        print(colored('______________________COMPLETE ITERATION LOOP AT: ' + str(megaiterator), 'red'))
+    #     megaiterator+=1
+    #     print(colored('______________________COMPLETE ITERATION LOOP AT: ' + str(megaiterator), 'red'))
 
-    print(colored('πππ_πππ_πππ_πππ_πππ_πππ PROCESSO TERMINADO CON EXITO', 'cyan'))
-    sys.exit()
-
-    # print(" --------- FLASH ------------")
-    # HF = start_flash_isotermico(tf, p, zfDicc)
+    print(" --------- FLASH ------------")
+    HF = start_flash_isotermico(tf, p, zfDicc)
     return
 
 def comparate(dict1, dict2, xlf_name, xhf_name):
@@ -353,7 +350,7 @@ def main():
         elementDicc['Acetato de Etilo']['value'].set(0.1)
         elementDicc['n-Octano']['value'].set(0.1)
         p.set(1)
-        tf.set(60)
+        tf.set(120)
         columnaP.set(4)
         xlk.set(0.97)
         xhk.set(0.03)

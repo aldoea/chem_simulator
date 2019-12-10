@@ -8,67 +8,79 @@ from termcolor import colored, cprint
 R = 8.314*10**-5
 H0_iv = [0.05, 0.06, 0.08, 0.9, 0.4, 0.02, 0.03, 0.05, 0.06, 0.09]
 TEMP_CORRECTOR = 273.15
+def scitter():
+    input()
+    sys.exit()
 
 def start_flash_isotermico(tf, p, zfDicc):
+    # Set TD
     td = tf
     for element in zfDicc:
         db_values = db.getElementValues(zfDicc[element]['db_row'])
-        Zif = float(zfDicc[element]['value'].get())
+        Zif = zfDicc[element]['Zi']
         Kils = burbuja.calculate_Ki(p, td, db_values)
         zfDicc[element]['Kils'] = Kils
         zfDicc[element]['Xils'] = Zif
+        print(element,'Zi:', Zif, 'Kils:', Kils)
         zfDicc[element]['Yils'] = Zif * Kils
         zfDicc[element]['is_normalized'] = False
 
-    psi = random.random()
+    psi = 0.5
     normalized_counter = 0
     psi_kplus1 = recalculate_psi(zfDicc, psi)
     while True:
-        psi_abs = abs((psi_kplus1 - psi) / psi)
-        print('-- psi_abs:', psi_abs)
-        if psi_abs < 0.001:
-            print('º- psi_abs pass the error prove, Psi:', psi, 'psi_kplus1:', psi_kplus1)
-            for element in zfDicc:
-                print(colored(element, 'yellow'))
-                if not zfDicc[element]['is_normalized']:
-                    db_values = db.getElementValues(zfDicc[element]['db_row'])
-                    Zif = float(zfDicc[element]['value'].get())
-                    Kils = zfDicc[element]['Kils']
-                    xils_supuesta = zfDicc[element]['Xils']
-                    yils_supuesta = zfDicc[element]['Yils']
-                    xil_calculada = Zif / (1 + (psi_kplus1 * (Kils - 1)))
-                    yil_calculada = (Zif * Kils) / (1 + (psi_kplus1 * (Kils - 1)))
-                    norm_xi = abs(xils_supuesta - xil_calculada)
-                    norm_yi = abs(yils_supuesta - yil_calculada)
-                    if norm_xi < 0.001 and norm_yi < 0.001:
-                        zfDicc[element]['Xil'] = xil_calculada
-                        zfDicc[element]['Yil'] = yil_calculada
-                        zfDicc[element]['is_normalized'] = True
-                        print(colored('<-- ' + element + 'is normalized !!!', 'cyan'))
-                        normalized_counter+=1
-                        break
-                    else:
-                        print(colored('NOT NORMALIZED ' + element, 'red'))
-                        print('-> Recalculating Kils for', element, ':', Kils)
-                        zfDicc[element]['Xils'] = xil_calculada
-                        zfDicc[element]['Yils'] = yil_calculada
-                        valores_de_arranque = calculate_valores_de_arranque(db_values, zfDicc, p, td)
-                        Kils = valores_de_arranque['Kils']
-                        zfDicc[element]['Kils'] = Kils
-                        print('-> Now Kils for', element, ':', Kils)
-                        for element in zfDicc:
-                            zfDicc[element]['is_normalized'] = False
-                        print('-> Recalculating psi_kplus1; psi:', psi, 'psi_kplus1:', psi_kplus1)
-                        psi = psi_kplus1
-                        psi_kplus1 = recalculate_psi(zfDicc, psi)
-                        print('-> psi:', psi, 'psi_kplus1 now:', psi_kplus1)
-                        normalized_counter = 0
-                        break
+        if psi_kplus1 <= 1 and psi_kplus1 >= 0:
+            psi_abs = abs((psi_kplus1 - psi) / psi_kplus1)
+            print('psi_abs:', psi_abs)
+            if psi_abs < 0.001:
+                print('©- psi_abs pass the error prove, Psi:', psi, 'psi^k+1:', psi_kplus1)
+                #scitter()
+                for element in zfDicc:
+                    print(colored(element, 'yellow'))
+                    if not zfDicc[element]['is_normalized']:
+                        db_values = db.getElementValues(zfDicc[element]['db_row'])
+                        Zif = zfDicc[element]['Zi']
+                        Kils = zfDicc[element]['Kils']
+                        xils_supuesta = zfDicc[element]['Xils']
+                        yils_supuesta = zfDicc[element]['Yils']
+                        xil_calculada = Zif / (1 + (psi_kplus1 * (Kils - 1)))
+                        yil_calculada = (Zif * Kils) / (1 + (psi_kplus1 * (Kils - 1)))
+                        norm_xi = abs(xils_supuesta - xil_calculada)
+                        norm_yi = abs(yils_supuesta - yil_calculada)
+                        if norm_xi < 0.001 and norm_yi < 0.001:
+                            zfDicc[element]['Xil'] = xil_calculada
+                            zfDicc[element]['Yil'] = yil_calculada
+                            zfDicc[element]['is_normalized'] = True
+                            print(colored('<-- ' + element + 'is normalized !!!', 'cyan'))
+                            normalized_counter+=1
+                            break
+                        else:
+                            print(colored('-- NOT NORMALIZED ' + element, 'red'))
+                            print('-> Recalculating Kils for', element, ':', Kils)
+                            zfDicc[element]['Xils'] = xil_calculada
+                            zfDicc[element]['Yils'] = yil_calculada
+                            valores_de_arranque = calculate_valores_de_arranque(db_values, zfDicc, p, td)
+                            Kils = valores_de_arranque['Kils']
+                            zfDicc[element]['Kils'] = Kils
+                            print('-> Now Kils for', element, ':', Kils)
+                            for element in zfDicc:
+                                zfDicc[element]['is_normalized'] = False
+                            print('-> Recalculating psi^k+1; psi:', psi, 'psi^k+1:', psi_kplus1)
+                            psi = psi_kplus1
+                            psi_kplus1 = recalculate_psi(zfDicc, psi)
+                            print('-> psi:', psi, 'psi^k+1 now:', psi_kplus1)
+                            normalized_counter = 0
+                            break
+            else:
+                print('-> psi then:', psi, 'psi^k+1 then :', psi_kplus1)
+                psi = psi_kplus1
+                psi_kplus1 = recalculate_psi(zfDicc, psi)
+                print('-> psi now:', psi, 'psi^k+1 now:', psi_kplus1)
         else:
-            print('-> Recalculating psi_kplus1; psi:', psi, 'psi_kplus1:', psi_kplus1)
-            psi = psi_kplus1
-            psi_kplus1 = recalculate_psi(zfDicc, psi)
-            print('-> psi:', psi, 'psi_kplus1 now:', psi_kplus1)
+            if psi_kplus1 > 1:
+                psi_kplus1 = (psi + 1) / 2
+            elif psi_kplus1 < 0:
+                psi_kplus1 = (psi + 0) / 2
         if normalized_counter == len(zfDicc):
             break
     print('PSI adecuado:', psi)
@@ -76,15 +88,18 @@ def start_flash_isotermico(tf, p, zfDicc):
     input('Press any to finish ....')
     sys.exit()
 
-def calculate_psi_kplus1(zfDicc, psi):
-    psi_kplus1 = 0.0
+def recalculate_psi(zfDicc, psi):
+    sum1 = 0.0
+    sum2 = 0.0
     for element in zfDicc:
-        db_values = db.getElementValues(zfDicc[element]['db_row'])
-        Zif = float(zfDicc[element]['value'].get())
+        Zif = zfDicc[element]['Zi']
         Kils = zfDicc[element]['Kils']
-        tmp = (Zif * (1 - Kils)) / (1 + (psi * (Kils - 1)))
-        psi_kplus1 += tmp
-    return psi_kplus1
+        tmp1 = (Zif * (1 - Kils)) / (1 + (psi * (Kils - 1)))
+        tmp2 = (Zif * (1 - Kils)**2) / (1 + (psi * (Kils - 1)))**2
+        sum1 += tmp1
+        sum2 += tmp2
+    new_psi = psi - (sum1 / sum2)
+    return new_psi
 
 def calculate_HF(zfDicc, tf, p):
     Ax = 0.0
@@ -173,16 +188,3 @@ def calculate_Ai(Pc, tf, Tc):
 
 def calculate_Bi(Pc, tf, Tc):
     return 1.2574/(Pc*(tf/Tc))      
-
-def recalculate_psi(zfDicc, psi):
-    sum1 = 0.0
-    sum2 = 0.0
-    for element in zfDicc:
-        Zif = float(zfDicc[element]['value'].get())
-        Kils = zfDicc[element]['Kils']
-        tmp1 = (Zif * (1 - Kils)) / (1 + (psi * (Kils - 1)))
-        tmp2 = (Zif * (1 - Kils)**2) / (1 + (psi * (Kils - 1)))**2
-        sum1 += tmp1
-        sum2 += tmp2
-    new_psi = psi - (sum1 / sum2)
-    return new_psi
