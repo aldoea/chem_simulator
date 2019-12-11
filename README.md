@@ -1,4 +1,4 @@
-# INSTALACIÓN:
+# INSTALACIÓN
 
 1. Descargar
 2. Descomprimir
