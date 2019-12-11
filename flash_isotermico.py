@@ -82,8 +82,10 @@ def start_flash_isotermico(tf, p, zfDicc):
         psi_avg += zfDicc[element]['psi']
     psi_avg = abs(psi_avg / len(zfDicc))
     print('PSI adecuado:', psi_avg)
-    input('Press any to finish ....')
-    sys.exit()
+    resultado = dict()
+    resultado['HF'] = HF
+    resultado['psi'] = psi_avg
+    return resultado
 
 def recalculate_psi(zfDicc, psi):
     sum1 = 0.0
